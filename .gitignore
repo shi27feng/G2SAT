@@ -1,16 +1,3 @@
-<<<<<<< 125a95ceab574140d346bec01e8044fcced996dd
-.idea/
-result_stats/
-model/
-logging/
-graphs/
-formulas/
-fig/
-dataset/train_set
-dataset/test_set
-
-
-=======
 /.idea/
 /result_stats/
 /model/
@@ -22,5 +9,5 @@ dataset/test_set
 /dataset/test_set/
 /runs/
 /__pycache__/
->>>>>>> update .gitignore
+
 *.py~
