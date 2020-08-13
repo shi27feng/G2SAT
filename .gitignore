@@ -1,12 +1,12 @@
-.idea/
-result_stats/
-model/
-logging/
-graphs/
-formulas/
-fig/
-dataset/train_set
-dataset/test_set
-
+/.idea/
+/result_stats/
+/model/
+/logging/
+/graphs/
+/formulas/
+/fig/
+/dataset/train_set/
+/dataset/test_set/
+/runs/
 
 *.py~
