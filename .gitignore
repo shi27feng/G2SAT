@@ -8,5 +8,5 @@
 /dataset/train_set/
 /dataset/test_set/
 /runs/
-
+/__pycache__/
 *.py~
