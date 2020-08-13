@@ -5,5 +5,8 @@ logging/
 graphs/
 formulas/
 fig/
+dataset/train_set
+dataset/test_set
+
 
 *.py~

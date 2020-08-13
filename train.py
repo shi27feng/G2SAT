@@ -1,33 +1,13 @@
-import torch
-import torch.nn as nn
-import torch_geometric as tg
-from torch_geometric.data import Data
-import torch_geometric.datasets
 # from torch_geometric.datasets import *
-import torch.nn.functional as F
-from torch_geometric.nn import MessagePassing
-from torch_geometric.utils import add_self_loops, degree
 # from torch_geometric.nn import GCNConv
-from torch.nn import init
-from sklearn.metrics import roc_auc_score
-import pickle
-import os.path
-import random
-from random import shuffle
-
-import pdb
-import copy
-import networkx as nx
-import numpy as np
-import os
-from tensorboardX import SummaryWriter
-
-from model import *
-from utils import *
-from data import *
-
 import logging
+import os.path
 
+from sklearn.metrics import roc_auc_score
+
+from data import *
+from model import *
+import time
 
 
 def train(args, loader_train, loader_test, model, optimizer,

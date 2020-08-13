@@ -1,9 +1,9 @@
-import torch
-from torch_geometric.data import Data
-import torch.utils.data
-import pdb
 import re
+
 import numpy as np
+import torch
+import torch.utils.data
+from torch_geometric.data import Data
 
 
 class Dataset_mine(torch.utils.data.Dataset):
@@ -22,11 +22,10 @@ class Dataset_mine(torch.utils.data.Dataset):
     @property
     def num_features(self):
         return self.data[0].x.shape[1]
+
     @property
     def num_classes(self):
         return len(np.unique(self.data[0].y))
-
-
 
 
 def __cat_dim__(key, value):
@@ -43,6 +42,7 @@ def __cat_dim__(key, value):
     # everything else in the first dimension.
     return -1 if bool(re.search('(index|face|mask_link)', key)) else 0
 
+
 def __cumsum__(key, value):
     r"""If :obj:`True`, :obj:`value` of attribute :obj:`key` is
     cumulatively summed up when creating batches.
@@ -54,6 +54,7 @@ def __cumsum__(key, value):
         attribute.
     """
     return bool(re.search('(index|face|mask_link)', key))
+
 
 class Batch(Data):
     r"""A plain old python object modeling a batch of graphs as one big
@@ -75,7 +76,7 @@ class Batch(Data):
         keys = [set(data.keys) for data in data_list]
         keys = list(set.union(*keys))
         # don't take "dists"
-        keys = [key for key in keys if key!='dists']
+        keys = [key for key in keys if key != 'dists']
         assert 'batch' not in keys
 
         batch = Batch()
@@ -87,7 +88,7 @@ class Batch(Data):
         cumsum = 0
         for i, data in enumerate(data_list):
             num_nodes = data.num_nodes
-            batch.batch.append(torch.full((num_nodes, ), i, dtype=torch.long))
+            batch.batch.append(torch.full((num_nodes,), i, dtype=torch.long))
             for key in keys:
                 item = data[key]
                 item = item + cumsum if __cumsum__(key, item) else item
@@ -154,10 +155,6 @@ class Batch(Data):
         return self.batch[-1].item() + 1
 
 
-
-
-
-
 class DataLoader(torch.utils.data.DataLoader):
     r"""Data loader which merges data objects from a
     :class:`torch_geometric.data.dataset` to a mini-batch.
@@ -177,6 +174,7 @@ class DataLoader(torch.utils.data.DataLoader):
             shuffle,
             collate_fn=lambda data_list: Batch.from_data_list(data_list),
             **kwargs)
+
 
 class DataLoader_batch(torch.utils.data.DataLoader):
     # each item is a batch of data
