@@ -2,7 +2,6 @@ from tensorboardX import SummaryWriter
 
 from args import *
 from batch import DataLoader
-from data import *
 from train import *
 from utils import *
 
