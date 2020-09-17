@@ -8,6 +8,7 @@ from sklearn.metrics import roc_auc_score
 from data import *
 from model import *
 import time
+from tqdm import tqdm, trange
 
 
 def train(args, loader_train, loader_test, model, optimizer,
@@ -29,7 +30,11 @@ def train(args, loader_train, loader_test, model, optimizer,
         counter = 0
         time_model = 0
         time_total = time.time()
-        for data in loader_train:
+
+        # for data in loader_train:
+        for index, data in tqdm(enumerate(loader_train),
+                                total=len(loader_train),
+                                desc="epoch {}".format(epoch)):
             time1 = time.time()
             model.train()
             optimizer.zero_grad()
@@ -52,7 +57,7 @@ def train(args, loader_train, loader_test, model, optimizer,
             pred_np_max += pred_np.max()
             pred_np_mean += pred_np.mean()
             auc_train += roc_auc_score(label_np, pred_np)
-            acc_train += np.mean((pred_np>0.5).astype(int)==label_np)
+            acc_train += np.mean((pred_np > 0.5).astype(int) == label_np)
             # update
             loss.backward()
             optimizer.step()
@@ -63,13 +68,13 @@ def train(args, loader_train, loader_test, model, optimizer,
                     grad_norms.append(p.grad.norm().cpu().numpy())
             grad_norm_min += min(grad_norms)
             grad_norm_max += max(grad_norms)
-            grad_norm_mean += sum(grad_norms)/len(grad_norms)
+            grad_norm_mean += sum(grad_norms) / len(grad_norms)
             counter += 1
             time2 = time.time()
-            time_model += time2-time1
+            time_model += time2 - time1
         time_total = time.time() - time_total
         if epoch % args.epoch_log == 0:
-            print('Train time per epoch: total {:.4f}, model {:.4f}'.format(time_total,time_model))
+            print('Train time per epoch: total {:.4f}, model {:.4f}'.format(time_total, time_model))
         loss_train /= counter
         auc_train /= counter
         acc_train /= counter
@@ -89,10 +94,10 @@ def train(args, loader_train, loader_test, model, optimizer,
         writer_train.add_scalar('pred_np_mean', pred_np_mean, epoch)
 
         if epoch % args.epoch_save == 0:
-            torch.save(model.state_dict(), save_dir+args.name+str(epoch))
+            torch.save(model.state_dict(), save_dir + args.name + str(epoch))
             print('model saved!')
 
-        if epoch % args.epoch_log == 0 and epoch>=args.epoch_test:
+        if epoch % args.epoch_log == 0 and epoch >= args.epoch_test:
             # test
             loss_test = 0
             auc_test = 0
@@ -122,7 +127,7 @@ def train(args, loader_train, loader_test, model, optimizer,
             acc_test /= counter
             print('Model {}'.format(args.model), epoch, 'Loss {:.4f}'.format(loss_train),
                   'Train AUC: {:.4f}'.format(auc_train), 'Test AUC: {:.4f}'.format(auc_test),
-                'Train ACC: {:.4f}'.format(acc_train), 'Test ACC: {:.4f}'.format(acc_test))
+                  'Train ACC: {:.4f}'.format(acc_train), 'Test ACC: {:.4f}'.format(acc_test))
 
             writer_test.add_scalar('auc', auc_test, epoch)
             writer_test.add_scalar('loss', loss_test, epoch)
@@ -130,14 +135,11 @@ def train(args, loader_train, loader_test, model, optimizer,
     return model
 
 
-
-
-
 def test(args, generator_list, model, repeat=0, outdir='graphs/'):
     if not os.path.isdir(outdir):
         os.mkdir(outdir)
     # generate graph batch
-    for i,generator in enumerate(generator_list):
+    for i, generator in enumerate(generator_list):
         time0 = time.time()
         time_model = 0
         generator.reset()
@@ -149,7 +151,7 @@ def test(args, generator_list, model, repeat=0, outdir='graphs/'):
             pred = torch.sum(nodes_first * nodes_second, dim=-1)
             pred_id = torch.argmax(pred).data
             time2 = time.time()
-            time_model += time2-time1
+            time_model += time2 - time1
             exit_flag = generator.update(generator.data.node_index[:, pred_id])
             if exit_flag:
                 break
@@ -161,10 +163,10 @@ def test(args, generator_list, model, repeat=0, outdir='graphs/'):
         outdir_single_graph = outdir + args.name + '_' + str(args.epoch_load) + '_' + str(repeat) + '/'
         if not os.path.isdir(outdir_single_graph):
             os.mkdir(outdir_single_graph)
-        save_graph_list([generator.graph],  outdir_single_graph + str(i) + '.dat')
+        save_graph_list([generator.graph], outdir_single_graph + str(i) + '.dat')
 
     graphs = [generator.graph for generator in generator_list]
-    save_graph_list(graphs, outdir + args.name+'_'+str(args.epoch_load)+'_'+str(repeat) + '.dat')
+    save_graph_list(graphs, outdir + args.name + '_' + str(args.epoch_load) + '_' + str(repeat) + '.dat')
     node_nums = [graph.number_of_nodes() for graph in graphs]
     edge_nums = [graph.number_of_edges() for graph in graphs]
     print('Num {}, Node {} {} {}, Edge {} {} {}'.format(
@@ -173,4 +175,3 @@ def test(args, generator_list, model, repeat=0, outdir='graphs/'):
     logging.info('Num {}, Node {} {} {}, Edge {} {} {}'.format(
         len(graphs), min(node_nums), max(node_nums), sum(node_nums) / len(node_nums), min(edge_nums),
         max(edge_nums), sum(edge_nums) / len(edge_nums)))
-
