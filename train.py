@@ -11,6 +11,22 @@ import time
 from tqdm import tqdm, trange
 
 
+def accuracy(model, data, loss_func, device, out_act):
+    data.to(device)
+    out = model(data)
+    edge_mask = torch.cat((data.node_index_positive, data.node_index_negative), dim=-1)
+    nodes_first = torch.index_select(out, 0, edge_mask[0, :].long().to(device))
+    nodes_second = torch.index_select(out, 0, edge_mask[1, :].long().to(device))
+    pred = torch.sum(nodes_first * nodes_second, dim=-1)
+    label_positive = torch.ones([data.node_index_positive.shape[1], ], dtype=pred.dtype)
+    label_negative = torch.zeros([data.node_index_negative.shape[1], ], dtype=pred.dtype)
+    label = torch.cat((label_positive, label_negative)).to(device)
+    loss = loss_func(pred, label)
+    label_np = label.flatten().cpu().numpy()
+    pred_np = out_act(pred).flatten().data.cpu().numpy()
+    return loss, pred, label_np, pred_np
+
+
 def train(args, loader_train, loader_test, model, optimizer,
           writer_train, writer_test, device, save_dir='model/'):
     if not os.path.isdir(save_dir):
@@ -38,21 +54,9 @@ def train(args, loader_train, loader_test, model, optimizer,
             time1 = time.time()
             model.train()
             optimizer.zero_grad()
-            data.to(device)
+            loss, pred, label_np, pred_np = accuracy(model, data, loss_func, device, out_act)
 
-            out = model(data)
-
-            edge_mask = torch.cat((data.node_index_positive, data.node_index_negative), dim=-1)
-            nodes_first = torch.index_select(out, 0, edge_mask[0, :].long().to(device))
-            nodes_second = torch.index_select(out, 0, edge_mask[1, :].long().to(device))
-            pred = torch.sum(nodes_first * nodes_second, dim=-1)
-            label_positive = torch.ones([data.node_index_positive.shape[1], ], dtype=pred.dtype)
-            label_negative = torch.zeros([data.node_index_negative.shape[1], ], dtype=pred.dtype)
-            label = torch.cat((label_positive, label_negative)).to(device)
-            loss = loss_func(pred, label)
             loss_train += loss.cpu().data.numpy()
-            label_np = label.flatten().cpu().numpy()
-            pred_np = out_act(pred).flatten().data.cpu().numpy()
             pred_np_min += pred_np.min()
             pred_np_max += pred_np.max()
             pred_np_mean += pred_np.mean()
@@ -105,23 +109,12 @@ def train(args, loader_train, loader_test, model, optimizer,
             counter = 0
             for data in loader_test:
                 # evaluate
-                data.to(device)
-
-                out = model(data)
-
-                edge_mask = torch.cat((data.node_index_positive, data.node_index_negative), dim=-1)
-                nodes_first = torch.index_select(out, 0, edge_mask[0, :].long().to(device))
-                nodes_second = torch.index_select(out, 0, edge_mask[1, :].long().to(device))
-                pred = torch.sum(nodes_first * nodes_second, dim=-1)
-                label_positive = torch.ones([data.node_index_positive.shape[1], ], dtype=pred.dtype)
-                label_negative = torch.zeros([data.node_index_negative.shape[1], ], dtype=pred.dtype)
-                label = torch.cat((label_positive, label_negative)).to(device)
-                loss_test += loss_func(pred, label).cpu().data.numpy()
-                label_np = label.flatten().cpu().numpy()
-                pred_np = out_act(pred).flatten().data.cpu().numpy()
+                loss, pred, label_np, pred_np = accuracy(model, data, loss_func, device, out_act)
+                loss_test += loss.cpu().data.numpy()
                 auc_test += roc_auc_score(label_np, pred_np)
                 acc_test += np.mean((pred_np > 0.5).astype(int) == label_np)
                 counter += 1
+
             loss_test /= counter
             auc_test /= counter
             acc_test /= counter
